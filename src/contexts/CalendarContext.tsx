@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react"
 import { ColorTextureCode, DateCellData } from "../utils/colors"
+import { SyncStatus, useCloudSync } from "../hooks/useCloudSync"
 
 type CalendarView = "Linear" | "Classic" | "Column"
 
@@ -12,6 +13,9 @@ interface CalendarContextType {
   setSelectedColorTexture: (colorTexture: ColorTextureCode) => void
   selectedView: CalendarView
   setSelectedView: (view: CalendarView) => void
+  syncStatus: SyncStatus
+  pushToCloud: () => Promise<void>
+  pullFromCloud: () => Promise<void>
 }
 
 const CalendarContext = createContext<CalendarContextType | undefined>(undefined)
@@ -118,6 +122,9 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children }) 
     })
   }
 
+  // Cloud sync — additive layer on top of localStorage
+  const { syncStatus, pushToCloud, pullFromCloud } = useCloudSync(selectedYear, dateCells, setDateCells)
+
   const value: CalendarContextType = {
     selectedYear,
     setSelectedYear,
@@ -127,6 +134,9 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children }) 
     setSelectedColorTexture,
     selectedView,
     setSelectedView,
+    syncStatus,
+    pushToCloud,
+    pullFromCloud,
   }
 
   return <CalendarContext.Provider value={value}>{children}</CalendarContext.Provider>

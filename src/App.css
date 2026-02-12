@@ -29,6 +29,26 @@
   }
 }
 
+@keyframes sync-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sync-spin {
+  animation: sync-spin 1.2s linear infinite;
+}
+
+.auth-button-container {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 10;
+}
+
 @media print {
   @page {
     size: A4 landscape;

@@ -1,6 +1,33 @@
 import React, { useRef } from "react"
 import { useCalendar } from "../contexts/CalendarContext"
+import { useAuth } from "../contexts/AuthContext"
 import { UI_COLORS } from "../utils/colors"
+
+const CloudIcon: React.FC<{ status: "idle" | "syncing" | "error" }> = ({ status }) => {
+  const color = status === "error" ? "#e74c3c" : status === "syncing" ? "#3498db" : "#27ae60"
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={status === "syncing" ? "sync-spin" : undefined}
+    >
+      <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+      {status === "idle" && <polyline points="9 14 12 11 15 14" />}
+      {status === "error" && (
+        <>
+          <line x1="12" y1="13" x2="12" y2="16" />
+          <circle cx="12" cy="18" r="0.5" fill={color} />
+        </>
+      )}
+    </svg>
+  )
+}
 
 const SaveLoadData: React.FC = () => {
   const {
@@ -12,9 +39,22 @@ const SaveLoadData: React.FC = () => {
     setSelectedYear,
     setSelectedColorTexture,
     setSelectedView,
+    syncStatus,
+    pullFromCloud,
+    pushToCloud,
   } = useCalendar()
 
+  const { user } = useAuth()
+
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const isAuthenticated = user !== null
+  const isSyncing = syncStatus === "pushing" || syncStatus === "pulling"
+
+  const handleSyncNow = async () => {
+    await pullFromCloud()
+    await pushToCloud()
+  }
 
   const handleSaveData = () => {
     const dataToSave = {
@@ -124,6 +164,44 @@ const SaveLoadData: React.FC = () => {
     }
   }
 
+  const renderSyncIndicator = () => {
+    if (!isAuthenticated || syncStatus === "offline") return null
+
+    let tooltipText = ""
+    let iconStatus: "idle" | "syncing" | "error" = "idle"
+
+    if (syncStatus === "idle") {
+      tooltipText = "Synced to cloud"
+      iconStatus = "idle"
+    } else if (isSyncing) {
+      tooltipText = "Syncing..."
+      iconStatus = "syncing"
+    } else if (syncStatus === "error") {
+      tooltipText = "Sync failed"
+      iconStatus = "error"
+    }
+
+    return (
+      <span
+        title={tooltipText}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "6px",
+          padding: "8px 12px",
+          fontSize: "13px",
+          color: iconStatus === "error" ? "#e74c3c" : iconStatus === "syncing" ? "#3498db" : "#27ae60",
+          borderRadius: "6px",
+          backgroundColor: iconStatus === "error" ? "#fdecea" : iconStatus === "syncing" ? "#eaf4fd" : "#eafaf1",
+        }}
+      >
+        <CloudIcon status={iconStatus} />
+        {isSyncing && "Syncing..."}
+        {syncStatus === "error" && "Sync failed"}
+      </span>
+    )
+  }
+
   return (
     <>
       <div
@@ -208,6 +286,39 @@ const SaveLoadData: React.FC = () => {
         >
           Clean All
         </button>
+
+        {isAuthenticated && (
+          <button
+            onClick={handleSyncNow}
+            disabled={isSyncing}
+            style={{
+              padding: "12px 20px",
+              fontSize: "14px",
+              fontWeight: "bold",
+              backgroundColor: isSyncing ? "#95a5a6" : "#3498db",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: isSyncing ? "not-allowed" : "pointer",
+              transition: "background-color 0.2s ease",
+              touchAction: "auto",
+            }}
+            onMouseEnter={(e) => {
+              if (!isSyncing) {
+                e.currentTarget.style.backgroundColor = "#2980b9"
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isSyncing) {
+                e.currentTarget.style.backgroundColor = "#3498db"
+              }
+            }}
+          >
+            Sync Now
+          </button>
+        )}
+
+        {renderSyncIndicator()}
 
         <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileChange} style={{ display: "none" }} />
       </div>

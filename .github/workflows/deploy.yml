@@ -41,6 +41,8 @@ jobs:
         run: npm run build
         env:
           CI: true
+          REACT_APP_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          REACT_APP_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         # working-directory: ./your-app   # keep in sync with step above
 
       - name: Setup Pages
